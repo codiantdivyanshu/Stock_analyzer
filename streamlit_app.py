@@ -1,6 +1,6 @@
 import streamlit as st
 import yfinance as yf
-from nsepython import nse_eq
+
 
 st.set_page_config(page_title="Stock Analyzer", layout="centered")
 st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
