@@ -1,5 +1,6 @@
 import streamlit as st
 import yfinance as yf
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="Stock Analyzer", layout="centered")
 st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
@@ -41,3 +42,36 @@ if st.button("Analyze Stock", key="analyze_btn"):
 
         except Exception as e:
             st.error(f"❌ Error fetching data: {e}")
+
+# Show chart using yfinance (historical)
+st.info("📉 Fetching historical chart data...")
+stock = yf.Ticker(full_symbol)
+hist = stock.history(period=period_option)
+
+if hist.empty:
+    st.warning("No historical chart data found.")
+else:
+    st.success(f"📈 Showing historical data for: {full_symbol}")
+
+
+    fig = go.Figure(data=[go.Candlestick(
+        x=hist.index,
+        open=hist['Open'],
+        high=hist['High'],
+        low=hist['Low'],
+        close=hist['Close'],
+        increasing_line_color='green',
+        decreasing_line_color='red'
+    )])
+
+    fig.update_layout(
+        title=f'Candlestick Chart for {full_symbol}',
+        xaxis_title='Date',
+        yaxis_title='Price',
+        xaxis_rangeslider_visible=False,
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+    st.dataframe(hist.tail())
+
