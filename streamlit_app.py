@@ -5,6 +5,14 @@ from nsepython import nse_eq
 ticker = yf.Ticker("RELIANCE.NS")
 data = ticker.history(period="1y")
 
+import requests
+
+url = "https://example.com/your_api_call"
+res = requests.get(url)
+print(res.status_code, res.text)  # Add this for debugging
+data = res.json()  # This line is crashing
+
+
 st.set_page_config(page_title="Stock Analyzer", layout="centered")
 st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
 
