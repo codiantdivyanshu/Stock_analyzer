@@ -2,17 +2,6 @@ import streamlit as st
 import yfinance as yf
 from nsepython import nse_eq
 
-ticker = yf.Ticker("RELIANCE.NS")
-data = ticker.history(period="1y")
-
-import requests
-
-url = "https://example.com/your_api_call"
-res = requests.get(url)
-print(res.status_code, res.text)  # Add this for debugging
-data = res.json()  # This line is crashing
-
-
 st.set_page_config(page_title="Stock Analyzer", layout="centered")
 st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
 
@@ -22,7 +11,7 @@ period_option = st.selectbox("Select time period to analyze:", ["1y", "2y", "5y"
 
 # Adjust full symbol for yfinance
 if exchange == "NSE":
-    full_symbol = symbol + ".NS"  # yfinance NSE format
+    full_symbol = symbol + ".NS"
 elif exchange == "BSE":
     full_symbol = symbol + ".BO"
 else:
@@ -34,7 +23,6 @@ if st.button("Analyze Stock", key="analyze_btn"):
     else:
         try:
             if exchange == "NSE":
-                # Show real-time data using nsepython
                 st.info(f"📡 Fetching real-time data for NSE symbol: {symbol}")
                 data = nse_eq(symbol)
 
@@ -62,9 +50,9 @@ if st.button("Analyze Stock", key="analyze_btn"):
                         "Previous Close": prev_close
                     })
 
-                # Show chart using yfinance (fallback for historical)
+                # Historical chart from Yahoo Finance
                 st.info("📉 Fetching historical chart data from Yahoo Finance...")
-                stock = yf.Ticker(symbol + ".NS")
+                stock = yf.Ticker(full_symbol)
                 hist = stock.history(period=period_option)
 
                 if hist.empty:
@@ -74,7 +62,6 @@ if st.button("Analyze Stock", key="analyze_btn"):
                     st.dataframe(hist.tail())
 
             else:
-                # For non-NSE exchanges
                 st.info(f"📉 Fetching data for: {full_symbol}")
                 stock = yf.Ticker(full_symbol)
                 data = stock.history(period=period_option)
