@@ -22,13 +22,14 @@ if st.button("Analyze Stock", key="analyze_btn"):
         st.warning("⚠️ Please enter a stock symbol.")
     else:
         try:
+            # Try getting real-time data (NSE only)
             if exchange == "NSE":
                 st.info(f"📡 Fetching real-time data for NSE symbol: {symbol}")
-                data = nse_eq(symbol)
+                try:
+                    data = nse_eq(symbol)
+                    if not data or not isinstance(data, dict):
+                        raise ValueError("No valid response from nse_eq")
 
-                if not data:
-                    st.warning(f"No real-time data found for NSE symbol: {symbol}")
-                else:
                     company_name = data.get("info", {}).get("companyName", "N/A")
                     price_info = data.get("priceInfo", {})
                     last_price = price_info.get("lastPrice", "N/A")
@@ -49,32 +50,22 @@ if st.button("Analyze Stock", key="analyze_btn"):
                         "Close": last_price,
                         "Previous Close": prev_close
                     })
+                except Exception as real_time_err:
+                    st.warning(f"⚠️ Real-time NSE data unavailable: {real_time_err}")
 
-                # Historical chart from Yahoo Finance
-                st.info("📉 Fetching historical chart data from Yahoo Finance...")
-                stock = yf.Ticker(full_symbol)
-                hist = stock.history(period=period_option)
+            # Always show historical chart with yfinance
+            st.info("📉 Fetching historical chart data...")
+            stock = yf.Ticker(full_symbol)
+            hist = stock.history(period=period_option)
 
-                if hist.empty:
-                    st.warning("No historical chart data found.")
-                else:
-                    st.line_chart(hist["Close"])
-                    st.dataframe(hist.tail())
-
+            if hist.empty:
+                st.warning("No historical chart data found.")
             else:
-                st.info(f"📉 Fetching data for: {full_symbol}")
-                stock = yf.Ticker(full_symbol)
-                data = stock.history(period=period_option)
+                st.line_chart(hist["Close"])
+                st.dataframe(hist.tail())
 
-                if data.empty:
-                    st.warning(f"No data found for {full_symbol}. Please check the symbol and exchange.")
-                else:
-                    st.success(f"📈 Showing historical data for: {full_symbol}")
-                    st.line_chart(data["Close"])
-                    st.write("🕒 Recent Price Data")
-                    st.dataframe(data.tail())
-
-                    info = stock.info
+                info = stock.info
+                if "longBusinessSummary" in info:
                     st.write("ℹ️ Company Info")
                     st.write(info.get("longBusinessSummary", "No summary available."))
 
