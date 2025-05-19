@@ -1,4 +1,6 @@
 streamlit
+nsepython
 yfinance
 pandas
 matplotlib
+plotly
