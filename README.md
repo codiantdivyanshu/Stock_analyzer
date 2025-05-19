@@ -49,13 +49,19 @@ Data is displayed in a table and visualized using line charts
 Checkbox allows toggling the raw data table view
 
 📁 Project Structure
-bash
-Copy
-Edit
-Stock_analyzer/
-├── stock_app.py           
-├── requirements.txt       
-└── README.md      
+Stock_analyzer
+│
+├── .devcontainer/
+│   ├── devcontainer.json         
+│   └── Dockerfile                
+│
+├── .gitignore               
+├── LICENSE                      
+├── README.md                    
+├── requirements.txt            
+├── runtime.txt                 
+└── streamlit_app.py              #
+     
 
 🧑‍💻 Author
 Divyanshu Gupta
