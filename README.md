@@ -1,42 +1,41 @@
-# 📊 Stock Analyzer App
+📊 Stock Analyzer App
 
-A simple and interactive web application built with **Streamlit** to analyze historical stock data using **Yahoo Finance**.
+A simple and interactive web application built with **Streamlit** to analyze historical stock data using Yahoo Finance.
 
----
 
-## 🚀 Features
+🚀 Features
 
 - 🔍 Search for any stock using its ticker symbol (e.g., `AAPL`, `TSLA`, `GOOGL`)
-- 📅 View historical stock data for the past 1 year
+- 📅 View historical stock data for the past all years
 - 📈 Visualize closing price trends using line charts
 - 📉 Optional display of raw tabular data
 - ✅ Fully deployed and accessible via Streamlit Cloud
 
----
 
-## 🛠️ Technologies Used
+
+🛠️ Technologies Used
 
 - [Streamlit](https://streamlit.io/) – for building the web UI
 - [yfinance](https://pypi.org/project/yfinance/) – to fetch stock market data
 - [pandas](https://pandas.pydata.org/) – for data manipulation
 - [matplotlib](https://matplotlib.org/) – for chart visualization (optional)
 
----
 
-## 📦 Installation (For Local Use)
 
-# Clone the repository
-git clone https://github.com/yourusername/Stock_analyzer.git
+📦 Installation 
+
+Clone the repository
+git clone https://github.com/codiantdivyanshu/Stock_analyzer.git
 cd Stock_analyzer
 
-# Create a virtual environment (optional but recommended)
+ Create a virtual environment (optional but recommended)
 python3 -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
-# Install dependencies
+Install dependencies
 pip install -r requirements.txt
 
-# Run the Streamlit app
+ Run the Streamlit app
 streamlit run stock_app.py
 
 
