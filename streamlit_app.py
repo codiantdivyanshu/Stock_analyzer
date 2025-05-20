@@ -111,7 +111,7 @@ def fetch_data(tickers, start, end):
 
 
 if not stock_data:
-    st.error(\"No valid stock data available. Please check your selections.\")
+    st.error("No valid stock data available. Please check your selections.")
     st.stop()
             
 
