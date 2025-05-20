@@ -10,3 +10,5 @@ prophet
 xgboost
 tensorflow
 scikit-learn
+uvicorn[standard]
+fastapi
