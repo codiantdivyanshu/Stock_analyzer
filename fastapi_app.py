@@ -1,15 +1,30 @@
 from fastapi import FastAPI, HTTPException, Query
 from typing import List, Optional
+import yfinance as yf
+import pandas as pd
 from datetime import date
-from stock_data import fetch_stock_data   # Import from separate module
 
 app = FastAPI(title="Stock Analyzer API")
+
+def fetch_stock_data(tickers: List[str], start_date: date, end_date: date):
+    data = {}
+    for ticker in tickers:
+        try:
+            df = yf.download(ticker, start=start_date, end=end_date)
+            if df.empty:
+                continue
+            # Convert dataframe to dict for JSON serialization
+            data[ticker] = df.reset_index().to_dict(orient='records')
+        except Exception as e:
+            # Skip ticker on error
+            continue
+    return data
 
 @app.get("/stocks")
 async def get_stocks(
     tickers: List[str] = Query(..., description="List of stock tickers"),
-    start_date: Optional[date] = Query(date(2020,1,1), description="Start date"),
-    end_date: Optional[date] = Query(date.today(), description="End date")
+    start_date: Optional[date] = Query(date(2020,1,1), description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date] = Query(date.today(), description="End date (YYYY-MM-DD)")
 ):
     stock_data = fetch_stock_data(tickers, start_date, end_date)
     if not stock_data:
