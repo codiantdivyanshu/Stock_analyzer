@@ -47,10 +47,6 @@ def fetch_data(tickers, start, end):
 
     return stock_data
 
-# ---------------- Use the Function ----------------
-
-stock_data = fetch_data(selected_stocks, start_date, end_date)
-
 stock_data = fetch_data(selected_stocks, start_date, end_date)
 
 if not stock_data:
