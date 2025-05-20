@@ -5,3 +5,8 @@ matplotlib
 numpy 
 seaborn
 plotly
+pmdarima
+prophet
+xgboost
+tensorflow
+scikit-learn
