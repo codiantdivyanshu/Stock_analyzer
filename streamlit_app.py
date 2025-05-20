@@ -5,12 +5,12 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Stock Analyzer", layout="centered")
 st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
 
-# UI Inputs
+
 exchange = st.selectbox("Select Stock Exchange", ["NSE", "BSE", "NASDAQ", "NYSE"])
 symbol = st.text_input("Enter Stock Symbol (e.g., RELIANCE, SBIN, AAPL)").upper()
 period_option = st.selectbox("Select time period to analyze:", ["1y", "2y", "5y", "10y", "max"])
 
-# Adjust full symbol for yfinance
+
 if exchange == "NSE":
     full_symbol = symbol + ".NS"
 elif exchange == "BSE":
@@ -18,7 +18,6 @@ elif exchange == "BSE":
 else:
     full_symbol = symbol
 
-# Analyze Button
 if st.button("Analyze Stock", key="analyze_btn"):
     if not symbol:
         st.warning("⚠️ Please enter a stock symbol.")
@@ -43,7 +42,6 @@ if st.button("Analyze Stock", key="analyze_btn"):
         except Exception as e:
             st.error(f"❌ Error fetching data: {e}")
 
-# Show chart using yfinance (historical)
 st.info("📉 Fetching historical chart data...")
 stock = yf.Ticker(full_symbol)
 hist = stock.history(period=period_option)
