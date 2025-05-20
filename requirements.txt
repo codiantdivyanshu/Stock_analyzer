@@ -2,10 +2,10 @@ streamlit
 yfinance
 pandas
 matplotlib 
-numpy 
+numpy==1.23.5
 seaborn
 plotly
-pmdarima
+pmdarima==2.0.4
 prophet
 xgboost
 tensorflow
