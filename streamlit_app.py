@@ -68,6 +68,13 @@ with col1:
     start_date = st.date_input("Start Date", datetime(2020, 1, 1))
 with col2:
     end_date = st.date_input("End Date", datetime.today())
+# ------------------- Forecasting Options -------------------
+st.subheader("📉 Forecasting Options")
+
+forecast_ticker = st.selectbox("Select a stock to forecast", selected_stocks)
+forecast_model = st.radio("Choose Forecasting Model", ["ARIMA", "Prophet"])
+forecast_period = st.slider("Forecast Horizon (days)", min_value=7, max_value=90, value=30)
+
 
 
 stock_data = fetch_data(selected_stocks, start_date, end_date)
@@ -75,6 +82,45 @@ stock_data = fetch_data(selected_stocks, start_date, end_date)
 if not stock_data:
     st.error("No valid stock data was fetched. Please check your stock selections and date range.")
     st.stop()
+
+from datetime import timedelta
+
+if forecast_ticker in stock_data:
+    df = stock_data[forecast_ticker].copy()
+
+    st.subheader(f"📉 Forecast for {forecast_ticker} using {forecast_model}")
+    if forecast_model == "ARIMA":
+        from pmdarima import auto_arima
+
+        series = df['Adj Close']
+        model = auto_arima(series, seasonal=False, stepwise=True, suppress_warnings=True)
+        future = model.predict(n_periods=forecast_period)
+
+        future_dates = pd.date_range(df.index[-1] + timedelta(days=1), periods=forecast_period)
+        forecast_df = pd.DataFrame({'Date': future_dates, 'Forecast': future})
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=df.index, y=series, name="Historical"))
+        fig.add_trace(go.Scatter(x=forecast_df['Date'], y=forecast_df['Forecast'], name="Forecast"))
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif forecast_model == "Prophet":
+        from prophet import Prophet
+
+        prophet_df = df.reset_index()[['Date', 'Adj Close']].rename(columns={'Date': 'ds', 'Adj Close': 'y'})
+        model = Prophet()
+        model.fit(prophet_df)
+
+        future = model.make_future_dataframe(periods=forecast_period)
+        forecast = model.predict(future)
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=prophet_df['ds'], y=prophet_df['y'], name="Historical"))
+        fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], name="Forecast"))
+        fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_upper'], name="Upper", line=dict(dash='dot')))
+        fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_lower'], name="Lower", line=dict(dash='dot')))
+        st.plotly_chart(fig, use_container_width=True)
+
 
 # ------------------- Chart -------------------
 
