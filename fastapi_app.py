@@ -30,3 +30,19 @@ async def get_stocks(
     if not stock_data:
         raise HTTPException(status_code=404, detail="No data found for given tickers and dates.")
     return stock_data
+@app.get("/")
+def root():
+    return {"message": "Welcome to Stock Analyzer API"}
+
+@app.get("/stock")
+def get_stock_data(ticker: str = Query(..., description="Stock ticker symbol")):
+    try:
+        df = yf.Ticker(ticker).history(period="1mo")  # last 1 month data
+        if df.empty:
+            raise HTTPException(status_code=404, detail="No data found for ticker")
+
+        # Prepare response data: convert DataFrame to dictionary for JSON
+        data = df.reset_index().to_dict(orient="records")
+        return {"ticker": ticker, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
