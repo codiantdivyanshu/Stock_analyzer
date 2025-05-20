@@ -46,6 +46,29 @@ def fetch_data(tickers, start, end):
             continue
 
     return stock_data
+# ----- User Inputs (must come before fetch_data call) -----
+
+st.subheader("Select or Enter Stock Symbols")
+
+# Default stock options
+default_stocks = ['AAPL', 'GOOG', 'MSFT', 'TSLA', 'INFY.BO', 'RELIANCE.BO']
+selected_stocks = st.multiselect("Choose from list or enter below:", default_stocks)
+
+# Optional custom input
+custom_input = st.text_input("Or enter comma-separated symbols (e.g., TCS.NS, HDFCBANK.NS)")
+
+# Merge and deduplicate
+if custom_input:
+    selected_stocks += [s.strip().upper() for s in custom_input.split(',') if s.strip()]
+    selected_stocks = list(set(selected_stocks))  # remove duplicates
+
+# Date range selection
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input("Start Date", datetime(2020, 1, 1))
+with col2:
+    end_date = st.date_input("End Date", datetime.today())
+
 
 stock_data = fetch_data(selected_stocks, start_date, end_date)
 
