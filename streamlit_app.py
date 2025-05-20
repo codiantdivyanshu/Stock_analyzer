@@ -19,21 +19,21 @@ with col1:
 with col2:
     end_date = st.date_input("End Date", datetime.today())
 
-# ✅ Fixed fetch_data function
 @st.cache_data
 def fetch_data(tickers, start, end):
     stock_data = {}
-    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
+
+    # Download data without adjusting automatically so we retain 'Adj Close'
+    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=False)
 
     for ticker in tickers:
         try:
-            # Single stock or flat column format
             if len(tickers) == 1 or not isinstance(raw.columns, pd.MultiIndex):
                 df = raw.copy()
-                df['Adj Close'] = df['Close']  # Already adjusted due to auto_adjust=True
+                df = df[['Adj Close']]
             else:
                 df = pd.DataFrame({
-                    'Adj Close': raw['Close'][ticker]  # Adjusted close is under 'Close'
+                    'Adj Close': raw['Adj Close'][ticker]
                 })
 
             df['Return'] = df['Adj Close'].pct_change()
@@ -43,6 +43,7 @@ def fetch_data(tickers, start, end):
             continue
 
     return stock_data
+
 
 # Validate stock selection
 if not selected_stocks:
