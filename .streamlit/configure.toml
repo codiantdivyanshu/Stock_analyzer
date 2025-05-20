@@ -1,0 +1,9 @@
+[theme]
+base="dark"
+
+[server]
+enableStaticServing = true
+
+[ui]
+hideTopBar = true
+hideMenu = true
