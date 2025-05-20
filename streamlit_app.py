@@ -92,7 +92,7 @@ st.dataframe(stats_df, use_container_width=True)
 st.subheader("📌 Return Correlation Matrix")
 returns_df = pd.DataFrame({ticker: stock_data[ticker]['Return'] for ticker in stock_data}).dropna()
 correlation = returns_df.corr()
-st.dataframe(correlation.style.background_gradient(cmap='coolwarm'), use_container_width=True)
+st.write(correlation.style.background_gradient(cmap='coolwarm'))
 
 # ------------------- Export -------------------
 
