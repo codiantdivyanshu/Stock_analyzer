@@ -90,28 +90,29 @@ except:
 
 @st.cache_data
 def fetch_data(tickers, start, end):
-    data = {}
-    try:
-        raw_data = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
+    stock_data = {}
 
-        for ticker in tickers:
-            try:
-                df = raw_data[ticker].copy()
-                df['Return'] = df['Adj Close'].pct_change()
-                data[ticker] = df
-            except (KeyError, TypeError):
-                st.warning(f"Data for {ticker} could not be loaded properly.")
-                continue
-    except Exception as e:
-        st.error(f"Failed to download data: {e}")
+    # Download with multi-index columns
+    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
 
-    return data
+    for ticker in tickers:
+        try:
+            df = pd.DataFrame({
+                'Adj Close': raw[('Adj Close', ticker)],
+                'Close': raw[('Close', ticker)] if ('Close', ticker) in raw.columns else None
+            })
+            df['Return'] = df['Adj Close'].pct_change()
+            stock_data[ticker] = df.dropna()
+        except Exception as e:
+            st.warning(f"Could not fetch data for {ticker}: {e}")
+            continue
 
+    return stock_data
 
-
-
+stock_data = fetch_data(selected_stocks, start_date, end_date)
 if not stock_data:
-    st.error("No valid stock data available. Please check your selections.")
+    st.error("No valid stock data was fetched. Please check your stock selections and date range.")
     st.stop()
+
             
 
