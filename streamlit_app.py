@@ -94,6 +94,30 @@ for ticker in stock_data:
 stats_df = pd.DataFrame(stats).sort_values(by="Total Return (%)", ascending=False)
 st.dataframe(stats_df, use_container_width=True)
 
+@st.cache_data
+def fetch_data(tickers, start, end):
+    stock_data = {}
+
+    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
+
+    for ticker in tickers:
+        try:
+            if len(tickers) == 1 or not isinstance(raw.columns, pd.MultiIndex):
+                df = raw.copy()
+                df['Adj Close'] = df['Close']  # Because auto_adjust=True
+            else:
+                df = pd.DataFrame({
+                    'Adj Close': raw['Close'][ticker],  # Close is already adjusted
+                })
+
+            df['Return'] = df['Adj Close'].pct_change()
+            stock_data[ticker] = df.dropna()
+        except Exception as e:
+            st.warning(f"Could not fetch data for {ticker}: {e}")
+            continue
+
+    return stock_data
+
 # ------------------- Correlation -------------------
 
 st.subheader("📌 Return Correlation Matrix")
