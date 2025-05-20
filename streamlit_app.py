@@ -19,28 +19,23 @@ with col1:
 with col2:
     end_date = st.date_input("End Date", datetime.today())
 
-
+# ✅ Fixed fetch_data function
 @st.cache_data
 def fetch_data(tickers, start, end):
     stock_data = {}
-
-    # Download with multi-index columns
     raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
-
-    # Check if single stock was selected (will return normal DataFrame)
-    if len(tickers) == 1:
-        ticker = tickers[0]
-        df = pd.DataFrame(raw)
-        df['Return'] = df['Adj Close'].pct_change()
-        stock_data[ticker] = df.dropna()
-        return stock_data
 
     for ticker in tickers:
         try:
-            df = pd.DataFrame({
-                'Adj Close': raw['Adj Close'][ticker],
-                'Close': raw['Close'][ticker] if 'Close' in raw else None
-            })
+            # Single stock or flat column format
+            if len(tickers) == 1 or not isinstance(raw.columns, pd.MultiIndex):
+                df = raw.copy()
+                df['Adj Close'] = df['Close']  # Already adjusted due to auto_adjust=True
+            else:
+                df = pd.DataFrame({
+                    'Adj Close': raw['Close'][ticker]  # Adjusted close is under 'Close'
+                })
+
             df['Return'] = df['Adj Close'].pct_change()
             stock_data[ticker] = df.dropna()
         except Exception as e:
@@ -49,11 +44,12 @@ def fetch_data(tickers, start, end):
 
     return stock_data
 
-
+# Validate stock selection
 if not selected_stocks:
     st.warning("Please select at least one stock.")
     st.stop()
 
+# Fetch stock data
 stock_data = fetch_data(selected_stocks, start_date, end_date)
 
 if not stock_data:
@@ -93,30 +89,6 @@ for ticker in stock_data:
 
 stats_df = pd.DataFrame(stats).sort_values(by="Total Return (%)", ascending=False)
 st.dataframe(stats_df, use_container_width=True)
-
-@st.cache_data
-def fetch_data(tickers, start, end):
-    stock_data = {}
-
-    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=True)
-
-    for ticker in tickers:
-        try:
-            if len(tickers) == 1 or not isinstance(raw.columns, pd.MultiIndex):
-                df = raw.copy()
-                df['Adj Close'] = df['Close']  # Because auto_adjust=True
-            else:
-                df = pd.DataFrame({
-                    'Adj Close': raw['Close'][ticker],  # Close is already adjusted
-                })
-
-            df['Return'] = df['Adj Close'].pct_change()
-            stock_data[ticker] = df.dropna()
-        except Exception as e:
-            st.warning(f"Could not fetch data for {ticker}: {e}")
-            continue
-
-    return stock_data
 
 # ------------------- Correlation -------------------
 
