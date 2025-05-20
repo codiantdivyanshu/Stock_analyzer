@@ -1,4 +1,6 @@
 streamlit
 yfinance
 pandas
-plotly
+matplotlib 
+numpy 
+seaborn
