@@ -1,75 +1,89 @@
 import streamlit as st
+import pandas as pd
 import yfinance as yf
-import plotly.graph_objects as go
+import plotly.graph_objs as go
+from datetime import datetime
 
-st.set_page_config(page_title="Stock Analyzer", layout="centered")
-st.title("📊 Stock Analyzer App (Supports NSE, BSE, NASDAQ)")
-
-
-exchange = st.selectbox("Select Stock Exchange", ["NSE", "BSE", "NASDAQ", "NYSE"])
-symbol = st.text_input("Enter Stock Symbol (e.g., RELIANCE, SBIN, AAPL)").upper()
-period_option = st.selectbox("Select time period to analyze:", ["1y", "2y", "5y", "10y", "max"])
+st.set_page_config(page_title="Multi-Stock Analyzer", layout="wide")
 
 
-if exchange == "NSE":
-    full_symbol = symbol + ".NS"
-elif exchange == "BSE":
-    full_symbol = symbol + ".BO"
-else:
-    full_symbol = symbol
-
-if st.button("Analyze Stock", key="analyze_btn"):
-    if not symbol:
-        st.warning("⚠️ Please enter a stock symbol.")
-    else:
-        try:
-            st.info(f"📉 Fetching data for: {full_symbol}")
-            stock = yf.Ticker(full_symbol)
-            hist = stock.history(period=period_option)
-
-            if hist.empty:
-                st.warning(f"No data found for {full_symbol}. Please check the symbol and exchange.")
-            else:
-                st.success(f"📈 Showing historical data for: {full_symbol}")
-                st.line_chart(hist["Close"])
-                st.write("🕒 Recent Price Data")
-                st.dataframe(hist.tail())
-
-                info = stock.info
-                st.write("ℹ️ Company Info")
-                st.write(info.get("longBusinessSummary", "No summary available."))
-
-        except Exception as e:
-            st.error(f"❌ Error fetching data: {e}")
-
-st.info("📉 Fetching historical chart data...")
-stock = yf.Ticker(full_symbol)
-hist = stock.history(period=period_option)
-
-if hist.empty:
-    st.warning("No historical chart data found.")
-else:
-    st.success(f"📈 Showing historical data for: {full_symbol}")
+st.title("📊 Multi-Stock Analyzer and Comparison Tool")
+st.markdown("Compare historical stock performance, returns, and risk metrics across multiple stocks.")
 
 
-    fig = go.Figure(data=[go.Candlestick(
-        x=hist.index,
-        open=hist['Open'],
-        high=hist['High'],
-        low=hist['Low'],
-        close=hist['Close'],
-        increasing_line_color='green',
-        decreasing_line_color='red'
-    )])
+stock_list = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'INFY.NS', 'TCS.NS', 'RELIANCE.NS', 'HDFCBANK.NS', 'SBIN.NS']
+selected_stocks = st.multiselect("Select Stocks to Compare", stock_list, default=['AAPL', 'MSFT', 'RELIANCE.NS'])
 
-    fig.update_layout(
-        title=f'Candlestick Chart for {full_symbol}',
-        xaxis_title='Date',
-        yaxis_title='Price',
-        xaxis_rangeslider_visible=False,
-        template="plotly_dark"
-    )
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input("Start Date", datetime(2023, 1, 1))
+with col2:
+    end_date = st.date_input("End Date", datetime.today())
 
-    st.plotly_chart(fig, use_container_width=True)
-    st.dataframe(hist.tail())
 
+@st.cache_data
+def fetch_data(tickers, start, end):
+    data = {}
+    for ticker in tickers:
+        df = yf.download(ticker, start=start, end=end)
+        df['Return'] = df['Adj Close'].pct_change()
+        data[ticker] = df
+    return data
+
+if not selected_stocks:
+    st.warning("Please select at least one stock.")
+    st.stop()
+
+stock_data = fetch_data(selected_stocks, start_date, end_date)
+
+
+st.subheader("📈 Price Trend Comparison")
+
+fig = go.Figure()
+for ticker in selected_stocks:
+    fig.add_trace(go.Scatter(x=stock_data[ticker].index,
+                             y=stock_data[ticker]['Adj Close'],
+                             name=ticker))
+fig.update_layout(title="Adjusted Close Prices", xaxis_title="Date", yaxis_title="Price", height=500)
+st.plotly_chart(fig, use_container_width=True)
+
+
+st.subheader("📊 Performance Metrics")
+
+stats = []
+for ticker in selected_stocks:
+    df = stock_data[ticker]
+    returns = df['Return'].dropna()
+    total_return = (df['Adj Close'][-1] / df['Adj Close'][0]) - 1
+    volatility = returns.std()
+    stats.append({
+        "Stock": ticker,
+        "Total Return (%)": round(total_return * 100, 2),
+        "Avg Daily Return (%)": round(returns.mean() * 100, 2),
+        "Volatility (Std Dev)": round(volatility, 4)
+    })
+
+stats_df = pd.DataFrame(stats).sort_values(by="Total Return (%)", ascending=False)
+st.dataframe(stats_df, use_container_width=True)
+
+st.subheader("📌 Return Correlation Matrix")
+returns_df = pd.DataFrame({ticker: stock_data[ticker]['Return'] for ticker in selected_stocks}).dropna()
+correlation = returns_df.corr()
+st.dataframe(correlation.style.background_gradient(cmap='coolwarm'), use_container_width=True)
+
+
+st.subheader("⬇️ Export Performance Data")
+csv = stats_df.to_csv(index=False).encode('utf-8')
+st.download_button("Download Metrics as CSV", csv, "stock_metrics.csv", "text/csv")
+
+
+st.subheader("🧠 AI Summary (Experimental)")
+try:
+    top = stats_df.iloc[0]
+    bottom = stats_df.iloc[-1]
+    st.markdown(f"**Best Performer:** {top['Stock']} with {top['Total Return (%)']}% return")
+    st.markdown(f"**Worst Performer:** {bottom['Stock']} with {bottom['Total Return (%)']}% return")
+    avg_return = stats_df['Total Return (%)'].mean()
+    st.markdown(f"**Average Total Return across selected stocks:** {round(avg_return, 2)}%")
+except:
+    st.info("Not enough data for summary.")
