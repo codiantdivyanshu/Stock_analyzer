@@ -2,71 +2,72 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import plotly.graph_objs as go
-from datetime import datetime, timedelta
+from datetime import datetime
 
 st.set_page_config(page_title="Multi-Stock Analyzer", layout="wide")
 
 st.title("📊 Multi-Stock Analyzer and Comparison Tool")
 st.markdown("Compare historical stock performance, returns, and risk metrics across multiple stocks.")
 
-# ----- Limit max stocks and date range -----
-MAX_STOCKS = 5
-MAX_DAYS = 365 * 2  # max 2 years
+def fetch_data(stocks, start_date, end_date):
+    data = {}
+    for stock in stocks:
+        try:
+            df = yf.download(stock, start=start_date, end=end_date)
+            if not df.empty:
+                data[stock] = df
+            else:
+                st.warning(f"No data found for {stock}. It might be an invalid ticker or outside trading days.")
+        except Exception as e:
+            st.error(f"Failed to fetch data for {stock}: {e}")
+    return data
 
-# ----- User Inputs (must come before fetch_data call) -----
-st.subheader("Select or Enter Stock Symbols")
 
-default_stocks = ['AAPL', 'GOOG', 'MSFT', 'TSLA', 'INFY.BO', 'RELIANCE.BO']
-selected_stocks = st.multiselect("Choose from list or enter below:", default_stocks)
 
-custom_input = st.text_input("Or enter comma-separated symbols (e.g., TCS.NS, HDFCBANK.NS)")
-
-if custom_input:
-    selected_stocks += [s.strip().upper() for s in custom_input.split(',') if s.strip()]
-    selected_stocks = list(set(selected_stocks))
-
-# Limit number of stocks
-if len(selected_stocks) > MAX_STOCKS:
-    st.warning(f"Limiting selection to first {MAX_STOCKS} stocks to improve performance.")
-    selected_stocks = selected_stocks[:MAX_STOCKS]
-
-col1, col2 = st.columns(2)
-with col1:
-    start_date = st.date_input("Start Date", datetime(2020, 1, 1))
-with col2:
-    end_date = st.date_input("End Date", datetime.today())
-
-# Limit date range
-if (end_date - start_date).days > MAX_DAYS:
-    st.warning(f"Date range limited to {MAX_DAYS} days for performance.")
-    start_date = end_date - timedelta(days=MAX_DAYS)
-
-# ------------------ Cache data fetching ------------------
-
-@st.cache_data(ttl=3600)  # Cache for 1 hour
+@st.cache_data
 def fetch_data(tickers, start, end):
     stock_data = {}
+
     for ticker in tickers:
         try:
             df = yf.Ticker(ticker).history(start=start, end=end)
             if df.empty or 'Close' not in df.columns:
                 st.warning(f"No data returned for {ticker}.")
                 continue
+
+            # Adjusted Close fallback if missing
             if 'Adj Close' not in df.columns:
                 df['Adj Close'] = df['Close']
+
             df['Return'] = df['Adj Close'].pct_change()
             stock_data[ticker] = df.dropna()
         except Exception as e:
             st.warning(f"Could not fetch data for {ticker}: {e}")
             continue
+
     return stock_data
+# ----- User Inputs (must come before fetch_data call) -----
 
-stock_data = fetch_data(selected_stocks, start_date, end_date)
+st.subheader("Select or Enter Stock Symbols")
 
-if not stock_data:
-    st.error("No valid stock data was fetched. Please check your stock selections and date range.")
-    st.stop()
+# Default stock options
+default_stocks = ['AAPL', 'GOOG', 'MSFT', 'TSLA', 'INFY.BO', 'RELIANCE.BO']
+selected_stocks = st.multiselect("Choose from list or enter below:", default_stocks)
 
+# Optional custom input
+custom_input = st.text_input("Or enter comma-separated symbols (e.g., TCS.NS, HDFCBANK.NS)")
+
+# Merge and deduplicate
+if custom_input:
+    selected_stocks += [s.strip().upper() for s in custom_input.split(',') if s.strip()]
+    selected_stocks = list(set(selected_stocks))  # remove duplicates
+
+# Date range selection
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input("Start Date", datetime(2020, 1, 1))
+with col2:
+    end_date = st.date_input("End Date", datetime.today())
 # ------------------- Forecasting Options -------------------
 st.subheader("📉 Forecasting Options")
 
@@ -74,35 +75,27 @@ forecast_ticker = st.selectbox("Select a stock to forecast", selected_stocks)
 forecast_model = st.radio("Choose Forecasting Model", ["ARIMA", "Prophet"])
 forecast_period = st.slider("Forecast Horizon (days)", min_value=7, max_value=90, value=30)
 
-# -------- Cache model loading and forecast results --------
 
-# Cache ARIMA model loading and forecasting
-@st.cache_data(ttl=3600)
-def run_arima_forecast(series, periods):
-    from pmdarima import auto_arima
-    model = auto_arima(series, seasonal=False, stepwise=True, suppress_warnings=True)
-    forecast = model.predict(n_periods=periods)
-    return forecast
 
-# Cache Prophet model loading and forecasting
-@st.cache_data(ttl=3600)
-def run_prophet_forecast(df, periods):
-    from prophet import Prophet
-    prophet_df = df.reset_index()[['Date', 'Adj Close']].rename(columns={'Date': 'ds', 'Adj Close': 'y'})
-    model = Prophet()
-    model.fit(prophet_df)
-    future = model.make_future_dataframe(periods=periods)
-    forecast = model.predict(future)
-    return prophet_df, forecast
+stock_data = fetch_data(selected_stocks, start_date, end_date)
+
+if not stock_data:
+    st.error("No valid stock data was fetched. Please check your stock selections and date range.")
+    st.stop()
+
+from datetime import timedelta
 
 if forecast_ticker in stock_data:
     df = stock_data[forecast_ticker].copy()
 
     st.subheader(f"📉 Forecast for {forecast_ticker} using {forecast_model}")
-
     if forecast_model == "ARIMA":
+        from pmdarima import auto_arima
+
         series = df['Adj Close']
-        future = run_arima_forecast(series, forecast_period)
+        model = auto_arima(series, seasonal=False, stepwise=True, suppress_warnings=True)
+        future = model.predict(n_periods=forecast_period)
+
         future_dates = pd.date_range(df.index[-1] + timedelta(days=1), periods=forecast_period)
         forecast_df = pd.DataFrame({'Date': future_dates, 'Forecast': future})
 
@@ -112,7 +105,14 @@ if forecast_ticker in stock_data:
         st.plotly_chart(fig, use_container_width=True)
 
     elif forecast_model == "Prophet":
-        prophet_df, forecast = run_prophet_forecast(df, forecast_period)
+        from prophet import Prophet
+
+        prophet_df = df.reset_index()[['Date', 'Adj Close']].rename(columns={'Date': 'ds', 'Adj Close': 'y'})
+        model = Prophet()
+        model.fit(prophet_df)
+
+        future = model.make_future_dataframe(periods=forecast_period)
+        forecast = model.predict(future)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=prophet_df['ds'], y=prophet_df['y'], name="Historical"))
@@ -120,6 +120,7 @@ if forecast_ticker in stock_data:
         fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_upper'], name="Upper", line=dict(dash='dot')))
         fig.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat_lower'], name="Lower", line=dict(dash='dot')))
         st.plotly_chart(fig, use_container_width=True)
+
 
 # ------------------- Chart -------------------
 
@@ -179,4 +180,4 @@ try:
     avg_return = stats_df['Total Return (%)'].mean()
     st.markdown(f"**Average Total Return across selected stocks:** {round(avg_return, 2)}%")
 except Exception as e:
-    st.info(f"Summary unavailable: {e}")
+    st.info(f"Summary unavailable: {e}") 
