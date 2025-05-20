@@ -19,22 +19,21 @@ with col1:
 with col2:
     end_date = st.date_input("End Date", datetime.today())
 
+
 @st.cache_data
 def fetch_data(tickers, start, end):
     stock_data = {}
 
-    # Download data without adjusting automatically so we retain 'Adj Close'
-    raw = yf.download(tickers, start=start, end=end, group_by='ticker', auto_adjust=False)
-
     for ticker in tickers:
         try:
-            if len(tickers) == 1 or not isinstance(raw.columns, pd.MultiIndex):
-                df = raw.copy()
-                df = df[['Adj Close']]
-            else:
-                df = pd.DataFrame({
-                    'Adj Close': raw['Adj Close'][ticker]
-                })
+            df = yf.Ticker(ticker).history(start=start, end=end)
+            if df.empty or 'Close' not in df.columns:
+                st.warning(f"No data returned for {ticker}.")
+                continue
+
+            # Adjusted Close fallback if missing
+            if 'Adj Close' not in df.columns:
+                df['Adj Close'] = df['Close']
 
             df['Return'] = df['Adj Close'].pct_change()
             stock_data[ticker] = df.dropna()
@@ -44,13 +43,10 @@ def fetch_data(tickers, start, end):
 
     return stock_data
 
+# ---------------- Use the Function ----------------
 
-# Validate stock selection
-if not selected_stocks:
-    st.warning("Please select at least one stock.")
-    st.stop()
+stock_data = fetch_data(selected_stocks, start_date, end_date)
 
-# Fetch stock data
 stock_data = fetch_data(selected_stocks, start_date, end_date)
 
 if not stock_data:
