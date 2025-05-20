@@ -9,15 +9,19 @@ st.set_page_config(page_title="Multi-Stock Analyzer", layout="wide")
 st.title("📊 Multi-Stock Analyzer and Comparison Tool")
 st.markdown("Compare historical stock performance, returns, and risk metrics across multiple stocks.")
 
-# Sample tickers (US and India NSE)
-stock_list = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'INFY.NS', 'TCS.NS', 'RELIANCE.NS', 'HDFCBANK.NS', 'SBIN.NS']
-selected_stocks = st.multiselect("Select Stocks to Compare", stock_list, default=['AAPL', 'MSFT', 'RELIANCE.NS'])
+def fetch_data(stocks, start_date, end_date):
+    data = {}
+    for stock in stocks:
+        try:
+            df = yf.download(stock, start=start_date, end=end_date)
+            if not df.empty:
+                data[stock] = df
+            else:
+                st.warning(f"No data found for {stock}. It might be an invalid ticker or outside trading days.")
+        except Exception as e:
+            st.error(f"Failed to fetch data for {stock}: {e}")
+    return data
 
-col1, col2 = st.columns(2)
-with col1:
-    start_date = st.date_input("Start Date", datetime(2023, 1, 1))
-with col2:
-    end_date = st.date_input("End Date", datetime.today())
 
 
 @st.cache_data
