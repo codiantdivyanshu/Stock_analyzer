@@ -1,8 +1,7 @@
-from fastapi import FastAPI, HTTPException, Query
-from typing import List, Optional, Dict, Any
+import FastAPI, HTTPException, Query from fastapi 
+import List, Optional, Dict, Any from typing 
 import yfinance as yf
-from datetime import date
-
+import date from datetime 
 app = FastAPI()
 
 @app.get("/")
