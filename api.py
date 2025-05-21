@@ -1,13 +1,9 @@
-import FastAPI, HTTPException, Query from fastapi 
-import List, Optional, Dict, Any from typing 
+from fastapi import FastAPI, HTTPException, Query
+from typing import List, Optional, Dict, Any
+from datetime import date
 import yfinance as yf
-import date from datetime 
+
 app = FastAPI()
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Stock Analyzer API"}
-
 
 def fetch_stock_data(tickers: List[str], start_date: date, end_date: date) -> Dict[str, Any]:
     data = {}
